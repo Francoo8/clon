@@ -39,7 +39,10 @@
     </div>
 
     <!-- 🔹 Formulario solo visible para admin -->
-    <div v-if="esAdmin" class="mt-10 max-w-lg mx-auto bg-white p-6 rounded-xl shadow-md">
+    <div
+      v-if="esAdmin"
+      class="mt-10 max-w-lg mx-auto bg-white p-6 rounded-xl shadow-md"
+    >
       <h2 class="text-2xl font-bold mb-4">
         {{ promoSeleccionada ? "Editar Promoción" : "Nueva Promoción" }}
       </h2>
@@ -98,21 +101,31 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 
+// ✅ Definición de tipo para las promociones
+interface Promocion {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  imagen_url: string;
+  precio: number;
+}
+
 const router = useRouter();
-const API_URL = "http://localhost:3000/api"; // ⚠️ Cambia esto al dominio de Railway cuando lo subas
+const API_URL = import.meta.env.VITE_API_URL;
 
-const promociones = ref<any[]>([]);
+// ✅ Variables reactivas con tipado
+const promociones = ref<Promocion[]>([]);
 const esAdmin = ref(false);
-const promoSeleccionada = ref<any | null>(null);
+const promoSeleccionada = ref<Promocion | null>(null);
 
-const form = ref({
+const form = ref<Omit<Promocion, "id">>({
   titulo: "",
   descripcion: "",
   imagen_url: "",
-  precio: null,
+  precio: 0,
 });
 
-// 🔹 Verificar si el usuario logueado es el admin
+// 🔹 Verificar si el usuario es admin
 onMounted(() => {
   const token = localStorage.getItem("token");
   const email = localStorage.getItem("email");
@@ -122,14 +135,15 @@ onMounted(() => {
     return;
   }
 
-  esAdmin.value = email === "admin123456@gmail.com";
+  // ✅ Si el correo es exactamente este, puede editar
+  esAdmin.value = email === "admin@gmail.com";
   obtenerPromociones();
 });
 
 // 🔹 Obtener promociones
 const obtenerPromociones = async () => {
   try {
-    const res = await axios.get(`${API_URL}/promociones`);
+    const res = await axios.get<Promocion[]>(`${API_URL}/api/promociones`);
     promociones.value = res.data;
   } catch (err) {
     console.error("Error al obtener promociones:", err);
@@ -143,13 +157,18 @@ const guardarPromo = async () => {
 
   try {
     if (promoSeleccionada.value) {
-      await axios.put(`${API_URL}/promociones/${promoSeleccionada.value.id}`, form.value, { headers });
+      await axios.put(
+        `${API_URL}/api/promociones/${promoSeleccionada.value.id}`,
+        form.value,
+        { headers }
+      );
       alert("✅ Promoción actualizada");
     } else {
-      await axios.post(`${API_URL}/promociones`, form.value, { headers });
+      await axios.post(`${API_URL}/api/promociones`, form.value, { headers });
       alert("✅ Promoción creada");
     }
-    form.value = { titulo: "", descripcion: "", imagen_url: "", precio: null };
+
+    form.value = { titulo: "", descripcion: "", imagen_url: "", precio: 0 };
     promoSeleccionada.value = null;
     obtenerPromociones();
   } catch (err) {
@@ -159,9 +178,14 @@ const guardarPromo = async () => {
 };
 
 // 🔹 Editar promoción
-const editarPromo = (promo: any) => {
+const editarPromo = (promo: Promocion) => {
   promoSeleccionada.value = promo;
-  form.value = { ...promo };
+  form.value = {
+    titulo: promo.titulo,
+    descripcion: promo.descripcion,
+    imagen_url: promo.imagen_url,
+    precio: promo.precio,
+  };
 };
 
 // 🔹 Eliminar promoción
@@ -172,7 +196,7 @@ const eliminarPromo = async (id: number) => {
   if (!confirm("¿Seguro que deseas eliminar esta promoción?")) return;
 
   try {
-    await axios.delete(`${API_URL}/promociones/${id}`, { headers });
+    await axios.delete(`${API_URL}/api/promociones/${id}`, { headers });
     alert("🗑️ Promoción eliminada");
     obtenerPromociones();
   } catch (err) {
@@ -184,12 +208,10 @@ const eliminarPromo = async (id: number) => {
 // 🔹 Cancelar edición
 const cancelarEdicion = () => {
   promoSeleccionada.value = null;
-  form.value = { titulo: "", descripcion: "", imagen_url: "", precio: null };
+  form.value = { titulo: "", descripcion: "", imagen_url: "", precio: 0 };
 };
 </script>
 
 <style scoped>
-textarea {
-  resize: none;
-}
+/* Opcional: estilos personalizados */
 </style>

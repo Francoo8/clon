@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
+import axios from 'axios';
 
 // Estado de los modales
 const showLogin = ref(false)
 const showRegister = ref(false)
+
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 // Datos de ejemplo
 const categories = [
@@ -29,10 +33,36 @@ const loginData = ref({ email: '', password: '' })
 const registerData = ref({ name: '', email: '', password: '' })
 
 // Funciones de ejemplo
-const handleLogin = () => {
-  alert(`Inicio de sesión de: ${loginData.value.email}`)
-  showLogin.value = false
-}
+const handleLogin = async () => {
+  try {
+    const response = await axios.post(`${API_URL}/api/login`, loginData.value);
+
+    const data = response.data;
+
+    // Guardar token y email en localStorage
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('email', data.email);
+
+    // Redirigir según email
+    if (data.email === 'admin@gmail.com') {
+      router.push('/admin'); // Admin
+    } else {
+      router.push('/home'); // Usuario normal
+    }
+
+    showLogin.value = false; // Cierra el modal
+
+  } catch (error: any) {
+    if (error.response) {
+      alert(error.response.data.error); // Muestra error del backend
+    } else {
+      alert('Error de conexión con el servidor');
+      console.error(error);
+    }
+  }
+};
+
+
 
 const handleRegister = () => {
   alert(`Usuario registrado: ${registerData.value.name}`)

@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import mysql from "mysql2";
+import mysql from "mysql2/promise"; 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -32,19 +32,6 @@ db.connect((err) => {
   }
 });
 
-// 📌 Crear tabla de usuarios si no existe
-db.query(`
-  CREATE TABLE IF NOT EXISTS usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100),
-    email VARCHAR(100) UNIQUE,
-    password VARCHAR(255)
-  )
-`, (err) => {
-  if (err) console.error("❌ Error creando la tabla usuarios:", err);
-  else console.log("🗄️ Tabla 'usuarios' lista o ya existente");
-});
-
 // 🔹 Endpoint: Registro
 app.post("/api/register", (req, res) => {
   const { nombre, email, password } = req.body;
@@ -53,11 +40,20 @@ app.post("/api/register", (req, res) => {
     return res.status(400).json({ error: "Faltan campos obligatorios" });
 
   const hashed = bcrypt.hashSync(password, 10);
+
+  console.log("Datos a insertar:", { nombre, email, password: hashed }); // <--- para depuración
+
   const sql = "INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)";
 
   db.query(sql, [nombre, email, hashed], (err) => {
     if (err) {
       console.error("❌ Error al registrar:", err);
+
+      // Manejar email duplicado
+      if (err.code === "ER_DUP_ENTRY") {
+        return res.status(400).json({ error: "El email ya está registrado" });
+      }
+
       return res.status(500).json({ error: "Error al registrar usuario" });
     }
     res.json({ message: "✅ Usuario registrado correctamente" });
@@ -99,7 +95,7 @@ function verificarAdmin(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.email !== "admin123456@gmail.com") {
+    if (decoded.email !== "admin@gmail.com") {
       return res.status(403).json({ error: "Acceso denegado" });
     }
     next();
