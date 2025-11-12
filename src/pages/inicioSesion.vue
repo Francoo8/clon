@@ -53,7 +53,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const loginUsuario = async () => {
   try {
-    const res = await axios.post(`${API_URL}/login`, {
+    const res = await axios.post(`${API_URL}/api/login`, {  
       email: email.value,
       password: password.value,
     });
@@ -72,7 +72,8 @@ const loginUsuario = async () => {
 
     alert("✅ Inicio de sesión exitoso");
   } catch (err: any) {
-    console.error(err);
+    console.error("Error completo:", err);
+    console.error("Response data:", err.response?.data);
     alert("❌ Error al iniciar sesión. Verifica tus credenciales.");
   }
 };

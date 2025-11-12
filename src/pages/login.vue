@@ -1,13 +1,14 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import axios from 'axios';
+import { useRouter } from 'vue-router'
 
 // Estado de los modales
 const showLogin = ref(false)
 const showRegister = ref(false)
 
 const API_URL = import.meta.env.VITE_API_URL;
-
+const router = useRouter()
 
 // Datos de ejemplo
 const categories = [
@@ -32,29 +33,28 @@ const restaurants = Array.from({ length: 8 }).map((_, i) => ({
 const loginData = ref({ email: '', password: '' })
 const registerData = ref({ name: '', email: '', password: '' })
 
-// Funciones de ejemplo
+// 🔹 FUNCIÓN LOGIN CORREGIDA
 const handleLogin = async () => {
   try {
     const response = await axios.post(`${API_URL}/api/login`, loginData.value);
-
     const data = response.data;
 
     // Guardar token y email en localStorage
     localStorage.setItem('token', data.token);
     localStorage.setItem('email', data.email);
 
-    // Redirigir según email
+    // ✅ CORREGIDO: Redirigir a '/promociones' en lugar de '/home'
     if (data.email === 'admin@gmail.com') {
-      router.push('/admin'); // Admin
+      router.push('/admin');
     } else {
-      router.push('/home'); // Usuario normal
+      router.push('/promociones'); // ✅ Cambiado de '/home' a '/promociones'
     }
 
-    showLogin.value = false; // Cierra el modal
+    showLogin.value = false;
 
   } catch (error: any) {
     if (error.response) {
-      alert(error.response.data.error); // Muestra error del backend
+      alert(error.response.data.error);
     } else {
       alert('Error de conexión con el servidor');
       console.error(error);
@@ -62,20 +62,33 @@ const handleLogin = async () => {
   }
 };
 
+// 🔹 FUNCIÓN REGISTER CORREGIDA
+const handleRegister = async () => {
+  try {
+    const response = await axios.post(`${API_URL}/api/register`, {
+      nombre: registerData.value.name, // ✅ Usar 'nombre' en lugar de 'name'
+      email: registerData.value.email,
+      password: registerData.value.password
+    });
 
-
-const handleRegister = () => {
-  alert(`Usuario registrado: ${registerData.value.name}`)
-  showRegister.value = false
+    alert('✅ Usuario registrado correctamente');
+    showRegister.value = false;
+    
+    // Limpiar formulario
+    registerData.value = { name: '', email: '', password: '' };
+    
+  } catch (error: any) {
+    if (error.response) {
+      alert(error.response.data.error);
+    } else {
+      alert('Error de conexión con el servidor');
+      console.error(error);
+    }
+  }
 }
 
-import { useRouter } from 'vue-router'
-const router = useRouter()
 const irARegister = () => router.push('/register')
-
-const irAInicioSesion = () => {
-  router.push('/inicioSesion')
-}
+const irAInicioSesion = () => router.push('/inicioSesion')
 </script>
 
 <template>
